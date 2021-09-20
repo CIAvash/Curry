@@ -1,0 +1,417 @@
+use v6.d;
+
+use Test;
+
+plan 10;
+
+use Curry:auth<zef:CIAvash> :all;
+
+subtest 'Positional parameters', {
+    plan 6;
+
+    sub f ($a, $b) is curry {
+        $a × $b;
+    }
+
+    is-deeply f(2, 3), 6, 'Normal function call';
+
+    lives-ok { f 2 }, 'Partially applying function doesn\'t die';
+
+    my &f_1 = f 2;
+
+    does-ok &f_1, Curry;
+
+    does-ok f(), Curry;
+
+    is-deeply f_1(3), 6, 'Calling partially applied function';
+
+    dies-ok { f 1, 2, 3 }, 'Calling function with extra arguments should die';
+}
+
+subtest 'Positional parameters + named and optional parameters', {
+    plan 3;
+
+    subtest 'Named parameter', {
+        plan 23;
+
+        sub f ($a, $b, :$c = 1) is curry {
+            [×] $a, $b, $c;
+        }
+
+        is-deeply f(2, 3, :c(4)), 24, 'Normal function call with all arguments';
+
+        does-ok f(2, 3), Curry;
+        is-deeply f(2,3)(), 6, 'Partially applied function call';
+
+        lives-ok { f 2 }, 'Partially applied function shouldn\'t die';
+
+        dies-ok { f 1, 2, 3 }, 'Calling function with extra arguments should die';
+
+        dies-ok { f 1, 2, :abcd(3) }, 'Calling function with unrecognized named argument should die';
+
+        my &f_1 = f 2;
+
+        does-ok &f_1, Curry;
+        does-ok f_1(3), Curry;
+
+        is-deeply f_1(3)(), 6, 'Calling partially applied function';
+
+        is-deeply f_1(3, :c(4)), 24, 'Calling partially applied function with named argument';
+
+        my &f_1_1 = f_1.assuming: 3;
+        isa-ok &f_1_1, Code:D;
+        is-deeply f_1_1(:c(4)), 24, 'Calling partially applied function using .assuming with named parameter';
+        dies-ok { f_1.curry: 3, :d(5) },
+        'Partially applied function call with unrecognized named argument should die';
+        my &f_1_2 = f_1.curry: 3;
+        does-ok &f_1_2, Curry;
+        is-deeply f_1_2(:c(4)), 24, 'Calling partially applied function using .curry with named parameter';
+
+        lives-ok { f 2, :c(4) }, 'Partially applied function with named argument shouldn\'t die';
+        my &f_2 = f 2, :c(4);
+        does-ok &f_2, Curry;
+        is-deeply f_2(3), 24, 'Calling partially applied function(which should have named argument)';
+
+        does-ok f, Curry;
+
+        my &f_3 = f;
+        lives-ok { f_3 2 }, 'Double partially applied function shouldn\'t die';
+
+        my &f_3_1 = f_3 2, :c(4);
+        does-ok &f_3_1, Curry;
+        is-deeply f_3_1(3), 24, 'Calling double partially applied function(which should have named argument)';
+
+        subtest 'Required named parameter', {
+            plan 5;
+
+            sub f ($a, $b, :$c!) is curry {
+                [×] $a, $b, $c;
+            }
+
+            is-deeply f(2, 3, :c(4)), 24, 'Normal function call with all arguments';
+
+            lives-ok { f 2 }, 'Partially applied function shouldn\'t die';
+
+            my &f_1 = f 2;
+            does-ok &f_1, Curry;
+            does-ok f_1(3), Curry;
+            is-deeply f_1(3)(:c(4)), 24, 'Calling partially applied function with required named parameter';
+        }
+    }
+
+    subtest 'Optional parameter', {
+        plan 13;
+
+        sub f ($a, $b, $c?) is curry {
+            [×] $a, $b, ($c // 1);
+        }
+
+        lives-ok { f 2 }, 'Partially applied function shouldn\'t die';
+
+        my &f_1 = f 2;
+
+        does-ok &f_1, Curry;
+        does-ok f_1(3), Curry;
+
+        my &f_1_1 = f_1(3);
+        is-deeply f_1(3)(), 6, 'Calling partially applied function';
+
+        is-deeply f_1(3, 4), 24, 'Calling partially applied function with optional argument';
+
+        is-deeply f(2, 3, 4), 24, 'Normal function call with all arguments';
+
+        does-ok f(2, 3), Curry;
+        is-deeply f(2, 3)(), 6, 'Partially applied function call';
+
+        sub f2 ($a, $b, $c = 1) is curry {
+            [×] $a, $b, $c;
+        }
+
+        lives-ok { f2 2 }, 'Partially applied function shouldn\'t die';
+
+        my &f2_1 = f2 2;
+
+        does-ok &f2_1, Curry;
+        does-ok f2_1(3), Curry;
+
+        # FIXME: Currently doesn't work, because .assuming loses the default value for optional arguments
+        # is-deeply f2_1(3)(), 6, 'Calling partially applied function';
+
+        is-deeply f2_1(3, 4), 24, 'Calling partially applied function with optional argument';
+
+        is-deeply f2(2, 3, 4), 24, 'Normal function call with all arguments';
+    }
+
+    subtest 'Optional + Named Parameter + Required Named Parameter', {
+        plan 18;
+
+        sub f ($a, $b, $c?, :$d!, :$e = 1) is curry {
+            [×] $a, $b, ($c // 1), $d, $e;
+        }
+
+        is-deeply f(2, 3, 4, :d(5), :e(6)), 720, 'Normal function call with all arguments';
+
+        lives-ok { f 2 }, 'Partially applied function shouldn\'t die';
+
+        does-ok f(2, 3), Curry;
+
+        does-ok f(2, 3, :d(5)), Curry;
+        is-deeply f(2, 3, :d(5))(), 30, 'Partially applied function call';
+        does-ok f(2, 3, 4, :d(5)), Curry;
+        is-deeply f(2, 3, 4, :d(5))(), 120, 'Partially applied function call with optional argument';
+
+        does-ok f(2, 3, 4, :e(6)), Curry;
+        my &f_3 = f(2, 3, 4, :e(6));
+        is-deeply f_3(:d(5)), 720,
+        'Partially applied function call with optional arguments and required named argument';
+
+        my &f_4 = f 2;
+        does-ok &f_4, Curry;
+        does-ok f_4(3, :d(5)), Curry;
+        is-deeply f_4(3, :d(5))(), 30, 'Calling partially applied function';
+        does-ok f_4(3, 4, :d(5)), Curry;
+        is-deeply f_4(3, 4, :d(5))(), 120, 'Calling partially applied function with optional argument';
+
+        my &f_5 = f 2, :d(5), :e(6);
+        does-ok &f_5, Curry;
+        does-ok f_5(3), Curry;
+        is-deeply f_5(3)(), 180, 'Calling partially applied function(which should have named arguments)';
+        is-deeply f_5(3, 4), 720,
+        'Calling partially applied function(which should have named arguments) with optional argument';
+    }
+}
+
+subtest 'Slurpy parameter', {
+    plan 3;
+
+    sub f (*@a) is curry {
+        [×] @a;
+    }
+
+    does-ok f(2, 3), Curry;
+    my &f_1 = f 2, 3;
+    is-deeply f_1, 6, 'Calling partially applied function with slurpy parameter';
+    is-deeply f_1(4)(), 24, 'Calling partially applied function with slurpy parameter';
+}
+
+subtest 'Capture parameter', {
+    plan 8;
+
+    sub f (|c) is curry {
+        [×] |c;
+    }
+
+    does-ok f(2, 3), Curry;
+    my &f_1 = f 2, 3;
+    is-deeply f_1, 6, 'Calling partially applied function with capture parameter';
+    is-deeply f_1(4)(), 24, 'Calling partially applied function with capture parameter';
+
+    sub f2 (Int $a, Str $b, |c --> Str:D) is curry {
+        "$a: $b " ~ [~] |c;
+    }
+
+    does-ok f2(1, 'a'), Curry;
+    my &f2_1 = f2 1, 'a';
+    is-deeply f2_1, '1: a ', 'Calling partially applied function';
+    does-ok f2_1('b'), Curry;
+    is-deeply f2_1('b')(), '1: a b', 'Calling partially applied function with capture parameter';
+
+    subtest 'Capture parameter with sub-signature', {
+        plan 7;
+
+        sub f (|c ($a, $b, |)) is curry {
+            [×] $a, $b;
+        }
+
+        does-ok f(2, 3), Curry;
+        my &f_1 = f 2, 3;
+        is-deeply f_1, 6,
+        'Calling partially applied function with capture with Inf sub-signature';
+
+        does-ok f_1(4), Curry;
+        is-deeply f_1(4)(), 6,
+        'Calling partially applied function with capture with Inf sub-signature';
+
+        sub f2 (|c ($a, $b)) is curry {
+            [×] $a, $b;
+        }
+
+        does-ok f2(2), Curry;
+
+        my &f2_1 = f2 2, 3;
+        is-deeply f2_1, 6, 'Calling partially applied function with capture parameter';
+
+        dies-ok { f2_1 4 },
+        'Calling partially applied function with extra argument should die';
+    }
+}
+
+subtest 'Curried method', {
+    plan 3;
+
+    my class C {
+        method m (Int $a, Int $b) is curry {
+            $a × $b;
+        }
+    }
+
+    my C $c .= new;
+    is-deeply $c.m(2, 3)(), 6, 'Normal method call';
+    does-ok $c.m(2), Curry;
+    my &m_1 = $c.m: 2;
+    is-deeply m_1(3)(), 6, 'Calling partially applied method';
+}
+
+subtest 'Curried variable', {
+    plan 8;
+
+    my &f = Curry[* + *];
+
+    is-deeply f(1, 2), 3, 'Normal function call';
+
+    does-ok f(1), Curry;
+    my &f_1 = f(1);
+    is-deeply f_1(2), 3, 'Partially applied function call';
+
+    my &f2 = Curry[
+        -> Int $a, Int $b, Int $c = 0 --> Int {
+            [+] $a, $b, $c;
+        }
+    ];
+
+    is-deeply f(1, 2), 3, 'Normal function call';
+
+    does-ok f2(1), Curry;
+    my &f2_1 = f2(1);
+    does-ok f2_1(2), Curry;
+    # FIXME: Currently does not work, because .assuming loses the default value for optional arguments
+    # is-deeply f2_1(2)(), 3, 'Partially applied function call';
+    is-deeply f2_1(2, 3), 6, 'Partially applied function call with all arguments';
+
+    my &f2_2 = f2(1, 2);
+    is-deeply f2_2(3), 6, 'Partially applied function call';
+}
+
+subtest 'Curried attribute', {
+    plan 9;
+
+    my class C {
+        has &.f1 is curry is rw;
+        has $.f2 is curry is rw;
+        has $.f3 = Curry[* + *];
+    }
+
+    my C $c .= new;
+    $c.f1 = * + *;
+    $c.f2 = * + *;
+    is-deeply $c.f1.(1, 2), 3, 'Normal function call';
+    is-deeply $c.f2.(1, 2), 3, 'Normal function call';
+    is-deeply $c.f3.(1, 2), 3, 'Normal function call';
+
+    does-ok $c.f1.(1), Curry;
+    does-ok $c.f2.(1), Curry;
+    does-ok $c.f3.(1), Curry;
+    my &f1_1 = $c.f1.(1);
+    my &f2_1 = $c.f2.(1);
+    my &f3_1 = $c.f3.(1);
+    is-deeply f1_1(2), 3, 'Partially applied function call';
+    is-deeply f2_1(2), 3, 'Partially applied function call';
+    is-deeply f3_1(2), 3, 'Partially applied function call';
+}
+
+subtest 'Passing Curry as argument', {
+    plan 3;
+
+    sub f ($a, &b) {
+        my &c = b $a;
+        c 2;
+    }
+
+    is-deeply f(1, Curry[*+*]), 3, 'Function call with curried argument';
+
+    my &f2 = Curry[*+*];
+    is-deeply (1 ==> f2() ==> {.(2)}()), 3, 'Using curried function with feed operator';
+
+    is-deeply f(3, f2() ∘ f2(2) ∘ f2(1)), 8, 'Using curried function in function composition'
+}
+
+subtest 'Accessing the original function', {
+    plan 2;
+
+    sub f ($a, $b) is curry {
+        $a × $b;
+    }
+
+    is-deeply &f.signature, :(|), 'Curried function has CaptureAll signature';
+    cmp-ok &f.original_function.signature, &[~~], :($a, $b), 'Original function has the correct signature';
+}
+
+subtest 'Making Curry', {
+    plan 39;
+
+    my &f = make_curry * + *;
+
+    is-deeply f(1, 2), 3, 'Normal function call';
+
+    does-ok f(1), Curry;
+    my &f_1 = f(1);
+    is-deeply f_1(2), 3, 'Partially applied function call';
+
+    my &cgrep = Curry[&grep];
+
+    is-deeply cgrep(Int, ['a', 2, 'c'])(), (2,), 'Normal function call';
+    does-ok cgrep(Int), Curry;
+    my &cgrep_int = cgrep Int;
+    is-deeply cgrep_int(['a', 2, 'c'])(), (2,), 'Partially applied function call';
+
+    make_curry &grep;
+    does-ok &grep, Curry;
+    is-deeply grep(Str, [1, 'b', 3, 'd'])(), <b d>, 'Normal function call';
+    does-ok grep(Str), Curry;
+    my &grep_str = grep(Str);
+    is-deeply grep_str([1, 'b', 3, 'd'])(), <b d>, 'Partially applied function call';
+
+    sub function1 (Int $a, Int $b) {
+        $a ÷ $b;
+    }
+
+    my &cfunction1 = new_curry &function1;
+    nok &function1.does(Curry),
+    'Curried function created with new_curry should have no effect on the original function';
+    does-ok cfunction1(4), Curry;
+    my &cfunction1_1 = cfunction1(4);
+    is-deeply cfunction1_1(2), 2.0, 'Partially applied function call';
+
+    my @functions1 = * + *, * × *, &function1;
+    my @cfunctions1 = new_curry @functions1;
+    for @functions1 {
+        nok .does(Curry),
+        'Curried function created with new_curry should have no effect on the original function';
+    }
+    for @cfunctions1 {
+        does-ok $_, Curry;
+        does-ok .(2), Curry;
+    }
+    make_curry @functions1;
+    for @functions1 {
+        does-ok $_, Curry;
+        does-ok .(2), Curry;
+    }
+
+    make_curryable &map;
+    does-ok &map, Curry;
+    does-ok &map, Curry::CaptureAll;
+    is-deeply map(*.succ, [1, 'b', 3, 'd'])(), (2, 'c', 4, 'e'), 'Normal function call';
+    does-ok map(*.succ), Curry;
+    my &map_succ = map(*.succ);
+    is-deeply map_succ([1, 'b', 3, 'd'])(), (2, 'c', 4, 'e'), 'Partially applied function call';
+
+    my @functions2 = &reduce, &zip;
+
+    make_curryable @functions2;
+    for @functions2 {
+        does-ok $_, Curry;
+        does-ok $_, Curry::CaptureAll;
+        does-ok .(&[+]), Curry;
+    }
+}

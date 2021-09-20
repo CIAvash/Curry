@@ -1,0 +1,9 @@
+use v6.d;
+
+use Test;
+
+BEGIN {
+    plan 1;
+
+    use-ok 'Curry:auth<zef:CIAvash>';
+}
