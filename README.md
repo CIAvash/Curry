@@ -35,6 +35,7 @@ sub f3 (*@a) is curry {
 my &pf3 = f 2, 3;
 say pf;
 =output 6␤
+
 say pf(4)();
 =output 24␤
 
@@ -50,15 +51,19 @@ my C $c .= new;
 # Method
 say $c.m(2, 3)()
 =output 6␤
+
 my &pm = $c.m(2, 3);
 say pm;
 =output 6␤
+
 say pm(4)();
 =output 24␤
+
 # Attribute
 $c.f = * + *;
 say $c.f.(1, 2);
 =output 3␤
+
 my &pa = $c.f.(1);
 say pa 2;
 =output 3␤
