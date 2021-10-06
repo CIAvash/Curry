@@ -4,7 +4,7 @@
     "description": "Library for making curried functions.",
     "authors": ["Siavash Askari Nasr"],
     "auth": "zef:CIAvash",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "tags": ["Curry", "Function", "Library", "Currying", "Functional Programming", "Curried", "Partial", "Trait"],
     "license": "LGPL-3.0-or-later",
     "source-url": "https://github.com/CIAvash/Curry.git",
