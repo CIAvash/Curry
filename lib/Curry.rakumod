@@ -133,10 +133,33 @@ role Curry:auth($?DISTRIBUTION.meta<auth>):ver($?DISTRIBUTION.meta<version>) [Co
     }
 
     #| Like C<assuming> but returns a Curry. And tries to preserve the parameters of the partial function.
-    #| Unfortunately cannot do so for the default value of optional positional parameters.
     method curry (|c --> Curry:D) {
         my &curried_function = $function.assuming: |c;
-        &curried_function does Curry::PreserveParams::InSub[&curried_function.signature, $function.signature, c];
+        &curried_function does Curry::PreserveParams::InSub[
+            &curried_function.signature,
+            $function.signature,
+            c
+        ];
+
+        # Deal with positional parameters that have default values
+        &curried_function.wrap: sub (|c) {
+            if c == 0 {
+                $function.signature.params ∩ &curried_function.signature.params
+                ==> keys()
+                ==> grep({ .positional & .optional & .default })
+                ==> map({ .default.() })
+                ==> my @args_with_default_values;
+
+                if @args_with_default_values -> $_ {
+                    callwith |$_
+                } else {
+                    callsame;
+                }
+            } else {
+                callsame;
+            }
+        }
+
         make_curry &curried_function;
     }
 

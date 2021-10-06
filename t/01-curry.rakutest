@@ -100,7 +100,7 @@ subtest 'Positional parameters + named and optional parameters', {
     }
 
     subtest 'Optional parameter', {
-        plan 13;
+        plan 14;
 
         sub f ($a, $b, $c?) is curry {
             [×] $a, $b, ($c // 1);
@@ -134,8 +134,7 @@ subtest 'Positional parameters + named and optional parameters', {
         does-ok &f2_1, Curry;
         does-ok f2_1(3), Curry;
 
-        # FIXME: Currently doesn't work, because .assuming loses the default value for optional arguments
-        # is-deeply f2_1(3)(), 6, 'Calling partially applied function';
+        is-deeply f2_1(3)(), 6, 'Calling partially applied function';
 
         is-deeply f2_1(3, 4), 24, 'Calling partially applied function with optional argument';
 
@@ -263,7 +262,7 @@ subtest 'Curried method', {
 }
 
 subtest 'Curried variable', {
-    plan 8;
+    plan 9;
 
     my &f = Curry[* + *];
 
@@ -284,8 +283,7 @@ subtest 'Curried variable', {
     does-ok f2(1), Curry;
     my &f2_1 = f2(1);
     does-ok f2_1(2), Curry;
-    # FIXME: Currently does not work, because .assuming loses the default value for optional arguments
-    # is-deeply f2_1(2)(), 3, 'Partially applied function call';
+    is-deeply f2_1(2)(), 3, 'Partially applied function call';
     is-deeply f2_1(2, 3), 6, 'Partially applied function call with all arguments';
 
     my &f2_2 = f2(1, 2);
@@ -364,12 +362,13 @@ subtest 'Making Curry', {
     my &cgrep_int = cgrep Int;
     is-deeply cgrep_int(['a', 2, 'c'])(), (2,), 'Partially applied function call';
 
-    make_curry &grep;
-    does-ok &grep, Curry;
-    is-deeply grep(Str, [1, 'b', 3, 'd'])(), <b d>, 'Normal function call';
-    does-ok grep(Str), Curry;
-    my &grep_str = grep(Str);
-    is-deeply grep_str([1, 'b', 3, 'd'])(), <b d>, 'Partially applied function call';
+    my &grep_clone = &grep.clone;
+    make_curry &grep_clone;
+    does-ok &grep_clone, Curry;
+    is-deeply grep_clone(Str, [1, 'b', 3, 'd'])(), <b d>, 'Normal function call';
+    does-ok grep_clone(Str), Curry;
+    my &grep_clone_str = grep_clone(Str);
+    is-deeply grep_clone_str([1, 'b', 3, 'd'])(), <b d>, 'Partially applied function call';
 
     sub function1 (Int $a, Int $b) {
         $a ÷ $b;
@@ -398,15 +397,16 @@ subtest 'Making Curry', {
         does-ok .(2), Curry;
     }
 
-    make_curryable &map;
-    does-ok &map, Curry;
-    does-ok &map, Curry::CaptureAll;
-    is-deeply map(*.succ, [1, 'b', 3, 'd'])(), (2, 'c', 4, 'e'), 'Normal function call';
-    does-ok map(*.succ), Curry;
-    my &map_succ = map(*.succ);
+    my &map_clone = &map.clone;
+    make_curryable &map_clone;
+    does-ok &map_clone, Curry;
+    does-ok &map_clone, Curry::CaptureAll;
+    is-deeply map_clone(*.succ, [1, 'b', 3, 'd'])(), (2, 'c', 4, 'e'), 'Normal function call';
+    does-ok map_clone(*.succ), Curry;
+    my &map_succ = map_clone(*.succ);
     is-deeply map_succ([1, 'b', 3, 'd'])(), (2, 'c', 4, 'e'), 'Partially applied function call';
 
-    my @functions2 = &reduce, &zip;
+    my @functions2 = &reduce.clone, &zip.clone;
 
     make_curryable @functions2;
     for @functions2 {

@@ -134,8 +134,6 @@ method curry(
 
 Like `assuming` but returns a Curry. And tries to preserve the parameters of the partial function.
 
-Unfortunately cannot do so for the default value of optional positional parameters.
-
 ### method original_function
 
 ```raku

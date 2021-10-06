@@ -5,29 +5,20 @@ unit package Curry::PreserveParams:auth($?DISTRIBUTION.meta<auth>);
 
 #| A role that has a C<params> method that uses the parameters of a function and its C<Capture> to create a new
 #| list of parameters for a partially applied function.
-#| It removes the named parameters which exist in the C<Capture>.
-#| It keeps the parameters which have default values or are required.
+#| It also removes the named parameters which exist in the C<Capture>.
 role InSignature [Signature:D $partial_signature, Signature:D $signature, Capture $capture] {
     method params {
         $partial_signature.params.map: -> $param {
             # Skip parameter if it is a named parameter which exists in the capture
             next if $param.named && $param.named_names.any eq $capture.hash.keys.any;
 
-            # Keep parameters with default value and required parameters
-            if $param.optional || $param.named {
-                $signature.params.first: {
-                    .positional || .name eq $param.named_names.any and .default || .suffix eq '!'
-                } orelse $param;
-            }
-            else {
-                $param;
-            }
+            $signature.params.first: *.name eq $param.name orelse $param;
         } andthen .List;
     }
 }
 
 #| A role that has a C<signature> method which adds the C<Curry::InSignature> role to the signature of
-#| partially applied function. Trying to preserve needed parameters.
+#| partially applied function. Trying to preserve parameters.
 role InSub [|c (Signature:D $partial_signature, Signature:D $signature, Capture $capture)] {
     method signature {
         $partial_signature but InSignature[|c];
