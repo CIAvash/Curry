@@ -91,7 +91,7 @@ INSTALLATION
 You need to have [Raku](https://www.raku-lang.ir/en) and [zef](https://github.com/ugexe/zef), then run:
 
 ```console
-zef install --/test Curry:auth<zef:CIAvash>
+zef install --/test "Curry:auth<zef:CIAvash>"
 ```
 
 or if you have cloned the repo:
