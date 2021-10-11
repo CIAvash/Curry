@@ -32,7 +32,7 @@ subtest 'Positional parameters + named and optional parameters', {
     plan 3;
 
     subtest 'Named parameter', {
-        plan 23;
+        plan 24;
 
         sub f ($a, $b, :$c = 1) is curry {
             [×] $a, $b, $c;
@@ -81,6 +81,12 @@ subtest 'Positional parameters + named and optional parameters', {
         does-ok &f_3_1, Curry;
         is-deeply f_3_1(3), 24, 'Calling double partially applied function(which should have named argument)';
 
+        sub f2 ($a, Int:D :$b = 2) is curry {
+            [+] $a, $b;
+        }
+
+        is-deeply f2(1)(), 3, 'Calling partially applied function. Definite named parameter';
+
         subtest 'Required named parameter', {
             plan 5;
 
@@ -100,7 +106,7 @@ subtest 'Positional parameters + named and optional parameters', {
     }
 
     subtest 'Optional parameter', {
-        plan 14;
+        plan 15;
 
         sub f ($a, $b, $c?) is curry {
             [×] $a, $b, ($c // 1);
@@ -139,6 +145,12 @@ subtest 'Positional parameters + named and optional parameters', {
         is-deeply f2_1(3, 4), 24, 'Calling partially applied function with optional argument';
 
         is-deeply f2(2, 3, 4), 24, 'Normal function call with all arguments';
+
+        sub f3 ($a, Int:D $b = 2) is curry {
+            [+] $a, $b;
+        }
+
+        is-deeply f3(1)(), 3, 'Calling partially applied function. Optional definite parameter';
     }
 
     subtest 'Optional + Named Parameter + Required Named Parameter', {

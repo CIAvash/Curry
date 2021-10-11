@@ -134,24 +134,30 @@ role Curry:auth($?DISTRIBUTION.meta<auth>):ver($?DISTRIBUTION.meta<version>) [Co
 
     #| Like C<assuming> but returns a Curry. And tries to preserve the parameters of the partial function.
     method curry (|c --> Curry:D) {
-        my &curried_function = $function.assuming: |c;
-        &curried_function does Curry::PreserveParams::InSub[
-            &curried_function.signature,
+        my &partial_function = $function.assuming: |c;
+        &partial_function does Curry::PreserveParams::InSub[
+            &partial_function.signature,
             $function.signature,
             c
         ];
 
-        # Deal with positional parameters that have default values
-        &curried_function.wrap: sub (|c) {
-            if c == 0 {
-                $function.signature.params ∩ &curried_function.signature.params
+        # Deal with positional and named parameters that have default value
+        &partial_function.wrap: sub (|c) {
+            if c + c.hash == 0 {
+                $function.signature.params.grep(*.default) ∩ &partial_function.signature.params
                 ==> keys()
-                ==> grep({ .positional & .optional & .default })
-                ==> map({ .default.() })
-                ==> my @args_with_default_values;
+                ==> map({
+                    my $defaul_value = .default.();
+                    .positional ?? $defaul_value !! (.usage-name => $defaul_value);
+                })
+                ==> classify({
+                    when Pair:D { 'named' }
+                    default     { 'positional' }
+                })
+                ==> my %args_with_default_value is default(Empty);
 
-                if @args_with_default_values -> $_ {
-                    callwith |$_
+                if %args_with_default_value -> $_ {
+                    callwith |.<positional>, |.<named>.Map;
                 } else {
                     callsame;
                 }
@@ -160,7 +166,7 @@ role Curry:auth($?DISTRIBUTION.meta<auth>):ver($?DISTRIBUTION.meta<version>) [Co
             }
         }
 
-        make_curry &curried_function;
+        make_curry &partial_function;
     }
 
     #| Returns the original function, the function that was curried
