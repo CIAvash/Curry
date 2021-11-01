@@ -141,6 +141,8 @@ role Curry:auth($?DISTRIBUTION.meta<auth>):ver($?DISTRIBUTION.meta<version>) [Co
             c
         ];
 
+        make_curry &partial_function;
+
         # Deal with positional and named parameters that have default value
         &partial_function.wrap: sub (|c) {
             if c + c.hash == 0 {
@@ -166,7 +168,7 @@ role Curry:auth($?DISTRIBUTION.meta<auth>):ver($?DISTRIBUTION.meta<version>) [Co
             }
         }
 
-        make_curry &partial_function;
+        &partial_function;
     }
 
     #| Returns the original function, the function that was curried

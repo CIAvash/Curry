@@ -58,9 +58,9 @@ subtest 'Positional parameters + named and optional parameters', {
 
         is-deeply f_1(3, :c(4)), 24, 'Calling partially applied function with named argument';
 
-        my &f_1_1 = f_1.assuming: 3;
+        my &f_1_1 = f_1 3;
         isa-ok &f_1_1, Code:D;
-        is-deeply f_1_1(:c(4)), 24, 'Calling partially applied function using .assuming with named parameter';
+        is-deeply f_1_1(:c(4)), 24, 'Calling partially applied function with named parameter';
         dies-ok { f_1.curry: 3, :d(5) },
         'Partially applied function call with unrecognized named argument should die';
         my &f_1_2 = f_1.curry: 3;
